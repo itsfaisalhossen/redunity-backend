@@ -26,6 +26,7 @@ async function run() {
 
     //  ********************  DB Collections **********************
     const usersCollection = db.collection("users");
+    const bloodsReqCollection = db.collection("bloods");
 
     //  ********************  User related apis **********************
     app.post("/users", async (req, res) => {
@@ -40,12 +41,24 @@ async function run() {
       const result = await usersCollection.insertOne(user);
       res.send(result);
     });
-
     app.get("/users/:email/role", async (req, res) => {
       const email = req.params.email;
       const query = { email };
       const user = await usersCollection.findOne(query);
       res.send({ role: user?.role || "Donor" });
+    });
+
+    //  ********************  Blood Need Request apis **********************
+    app.post("/bloods", async (req, res) => {
+      const blood = req.body;
+      const result = await bloodsReqCollection.insertOne(blood);
+      res.send(result);
+    });
+    app.get("/bloods/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await bloodsReqCollection.findOne(query);
+      res.send(result);
     });
 
     await client.db("admin").command({ ping: 1 });
