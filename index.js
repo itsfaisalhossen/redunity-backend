@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 require("dotenv").config();
 const port = process.env.PORT || 3000;
@@ -47,10 +47,34 @@ async function run() {
       const user = await usersCollection.findOne(query);
       res.send({ role: user?.role || "Donor" });
     });
+    app.put("/users/:email", async (req, res) => {
+      const email = req.params.email;
+      const updatedData = req.body;
+      delete updatedData._id;
+      delete updatedData.email;
+      const filter = { email: email };
+      const updateDoc = {
+        $set: updatedData,
+      };
+      try {
+        const result = await usersCollection.updateOne(filter, updateDoc);
+        if (result.modifiedCount > 0) {
+          res.send({ success: true, message: "Profile updated successfully" });
+        } else {
+          res.send({ success: false, message: "No changes made" });
+        }
+      } catch (error) {
+        console.error(error);
+        res
+          .status(500)
+          .send({ success: false, message: "Internal server error" });
+      }
+    });
 
     //  ********************  Blood Need Request apis **********************
     app.post("/bloods", async (req, res) => {
       const blood = req.body;
+      blood.status = "Pending";
       const result = await bloodsReqCollection.insertOne(blood);
       res.send(result);
     });
@@ -58,6 +82,42 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await bloodsReqCollection.findOne(query);
+      res.send(result);
+    });
+    app.get("/lastRequest-bloods", async (req, res) => {
+      const email = req.query.email;
+      const result = await bloodsReqCollection
+        .find({ email: email }) // শুধু নিজের রিকোয়েস্ট
+        .sort({ _id: -1 }) // সর্বশেষ আগে
+        .limit(3) // শেষ ৩টা
+        .toArray();
+
+      res.send(result);
+    });
+    app.put("/lastRequest-bloods/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const updatedBlood = req.body;
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: updatedBlood,
+        };
+        const result = await bloodsReqCollection.updateOne(filter, updateDoc);
+        res.send({ success: true, result });
+      } catch (error) {
+        console.error("Error updating food:", error);
+        res
+          .status(500)
+          .send({ success: false, message: "Failed to update food" });
+      }
+    });
+    app.delete("/lastRequest-bloods/:id", async (req, res) => {
+      const id = req.params.id;
+      const email = req.query.email;
+      const result = await bloodsReqCollection.deleteOne({
+        _id: new ObjectId(id),
+        email: email,
+      });
       res.send(result);
     });
 
