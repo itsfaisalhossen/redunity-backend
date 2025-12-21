@@ -22,8 +22,31 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // await client.connect();
+    const db = client.db("redunity_db");
+
     //  ********************  DB Collections **********************
-    //  ********************  DB Collections **********************
+    const usersCollection = db.collection("users");
+
+    //  ********************  User related apis **********************
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      user.role = "Donor";
+      user.createdAt = new Date();
+      const email = user.email;
+      const userExists = await usersCollection.findOne({ email });
+      if (userExists) {
+        return res.send({ message: "User exists" });
+      }
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
+
+    app.get("/users/:email/role", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      res.send({ role: user?.role || "Donor" });
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log(
