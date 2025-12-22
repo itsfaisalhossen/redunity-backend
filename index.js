@@ -46,6 +46,39 @@ async function run() {
       const user = await usersCollection.findOne(query);
       res.send({ role: user?.role || "Donor" });
     });
+    app.get("/search-donors", async (req, res) => {
+      const { bloodGroup, district, upazila } = req.query;
+      let query = {
+        role: "Donor",
+        status: "active",
+      };
+
+      const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (bloodGroup) {
+        query.bloodGroup = bloodGroup;
+      }
+      if (district) {
+        query.district = {
+          $regex: new RegExp(`^${escapeRegex(district)}$`, "i"),
+        };
+      }
+      if (upazila) {
+        query.upazila = {
+          $regex: new RegExp(`^${escapeRegex(upazila)}$`, "i"),
+        };
+      }
+      try {
+        const result = await usersCollection.find(query).toArray();
+        console.log("Found donors:", result.length);
+        res.send(result);
+      } catch (error) {
+        console.error("Search failed:", error);
+        res.status(500).send({
+          message: "Search failed",
+          error,
+        });
+      }
+    });
     app.put("/users/:email", async (req, res) => {
       const email = req.params.email;
       const updatedData = req.body;
