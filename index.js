@@ -123,6 +123,16 @@ async function run() {
 
       res.send(result);
     });
+    app.get("/pending-blood-requests", async (req, res) => {
+      try {
+        const result = await bloodsReqCollection
+          .find({ status: "pending" })
+          .toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "ডেটা আনতে সমস্যা হয়েছে" });
+      }
+    });
     app.patch("/bloods/:id", async (req, res) => {
       const id = req.params.id;
       const { donorName, donorEmail, status } = req.body;
