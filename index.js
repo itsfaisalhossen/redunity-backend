@@ -23,7 +23,6 @@ async function run() {
   try {
     // await client.connect();
     const db = client.db("redunity_db");
-
     //  ********************  DB Collections **********************
     const usersCollection = db.collection("users");
     const bloodsReqCollection = db.collection("bloods");
@@ -74,7 +73,7 @@ async function run() {
     //  ********************  Blood Need Request apis **********************
     app.post("/bloods", async (req, res) => {
       const blood = req.body;
-      blood.status = "Pending";
+      blood.status = "pending";
       const result = await bloodsReqCollection.insertOne(blood);
       res.send(result);
     });
@@ -84,6 +83,36 @@ async function run() {
       const result = await bloodsReqCollection.findOne(query);
       res.send(result);
     });
+    app.get("/my-requests/:email", async (req, res) => {
+      const email = req.params.email;
+      const status = req.query.status;
+      const page = parseInt(req.query.page) || 1;
+      const size = parseInt(req.query.size) || 5;
+      const skip = (page - 1) * size;
+
+      let query = { email: email };
+      // যদি ফিল্টার থাকে তবে কুয়েরিতে যোগ করবে
+      if (status && status !== "") {
+        query.status = status;
+      }
+
+      try {
+        const result = await bloodsReqCollection
+          .find(query)
+          .skip(skip)
+          .limit(size)
+          .toArray();
+
+        const totalCount = await bloodsReqCollection.countDocuments(query);
+
+        res.send({
+          data: result,
+          totalCount,
+        });
+      } catch (error) {
+        res.status(500).send({ message: "Error fetching data", error });
+      }
+    });
     app.get("/lastRequest-bloods", async (req, res) => {
       const email = req.query.email;
       const result = await bloodsReqCollection
@@ -92,6 +121,20 @@ async function run() {
         .limit(3) // শেষ ৩টা
         .toArray();
 
+      res.send(result);
+    });
+    app.patch("/bloods/:id", async (req, res) => {
+      const id = req.params.id;
+      const { donorName, donorEmail, status } = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          donorName,
+          donorEmail,
+          status,
+        },
+      };
+      const result = await bloodsReqCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
     app.put("/lastRequest-bloods/:id", async (req, res) => {
@@ -121,7 +164,7 @@ async function run() {
       res.send(result);
     });
 
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
