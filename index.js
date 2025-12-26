@@ -48,9 +48,11 @@ async function run() {
     });
     app.get("/search-donors", async (req, res) => {
       const { bloodGroup, district, upazila } = req.query;
+      console.log(req.query);
+
       let query = {
         role: "Donor",
-        status: "active",
+        status: "Active",
       };
 
       const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -122,22 +124,17 @@ async function run() {
       const page = parseInt(req.query.page) || 1;
       const size = parseInt(req.query.size) || 5;
       const skip = (page - 1) * size;
-
       let query = { email: email };
-      // যদি ফিল্টার থাকে তবে কুয়েরিতে যোগ করবে
       if (status && status !== "") {
         query.status = status;
       }
-
       try {
         const result = await bloodsReqCollection
           .find(query)
           .skip(skip)
           .limit(size)
           .toArray();
-
         const totalCount = await bloodsReqCollection.countDocuments(query);
-
         res.send({
           data: result,
           totalCount,
@@ -153,7 +150,6 @@ async function run() {
         .sort({ _id: -1 }) // সর্বশেষ আগে
         .limit(3) // শেষ ৩টা
         .toArray();
-
       res.send(result);
     });
     app.get("/pending-blood-requests", async (req, res) => {
@@ -166,6 +162,37 @@ async function run() {
         res.status(500).send({ message: "ডেটা আনতে সমস্যা হয়েছে" });
       }
     });
+    app.get("/all-donation-requests", async (req, res) => {
+      const status = req.query.status;
+      const page = parseInt(req.query.page) || 1;
+      const size = parseInt(req.query.size) || 5;
+      const skip = (page - 1) * size;
+
+      let query = {};
+      if (status) {
+        query.status = status;
+      }
+
+      try {
+        const data = await bloodsReqCollection
+          .find(query)
+          .skip(skip)
+          .limit(size)
+          .toArray();
+
+        const totalCount = await bloodsReqCollection.countDocuments(query);
+
+        res.send({
+          data,
+          totalCount,
+          page,
+          size,
+        });
+      } catch (error) {
+        res.status(500).send({ message: "Error fetching data" });
+      }
+    });
+
     app.patch("/bloods/:id", async (req, res) => {
       const id = req.params.id;
       const { donorName, donorEmail, status } = req.body;
