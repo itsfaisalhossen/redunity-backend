@@ -146,9 +146,9 @@ async function run() {
     app.get("/lastRequest-bloods", async (req, res) => {
       const email = req.query.email;
       const result = await bloodsReqCollection
-        .find({ email: email }) // শুধু নিজের রিকোয়েস্ট
-        .sort({ _id: -1 }) // সর্বশেষ আগে
-        .limit(3) // শেষ ৩টা
+        .find({ email: email })
+        .sort({ _id: -1 })
+        .limit(3)
         .toArray();
       res.send(result);
     });
@@ -192,7 +192,6 @@ async function run() {
         res.status(500).send({ message: "Error fetching data" });
       }
     });
-
     app.patch("/bloods/:id", async (req, res) => {
       const id = req.params.id;
       const { donorName, donorEmail, status } = req.body;
@@ -226,10 +225,8 @@ async function run() {
     });
     app.delete("/lastRequest-bloods/:id", async (req, res) => {
       const id = req.params.id;
-      const email = req.query.email;
       const result = await bloodsReqCollection.deleteOne({
         _id: new ObjectId(id),
-        email: email,
       });
       res.send(result);
     });
