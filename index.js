@@ -40,6 +40,14 @@ async function run() {
       const result = await usersCollection.insertOne(user);
       res.send(result);
     });
+    app.get("/users", async (req, res) => {
+      try {
+        const result = await usersCollection.find({}).toArray();
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ message: "Failed to get users data" });
+      }
+    });
     app.get("/users/:email/role", async (req, res) => {
       const email = req.params.email;
       const query = { email };
@@ -79,6 +87,19 @@ async function run() {
           message: "Search failed",
           error,
         });
+      }
+    });
+    app.patch("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: req.body,
+      };
+      try {
+        const result = await usersCollection.updateOne(filter, updatedDoc);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Update failed", error });
       }
     });
     app.put("/users/:email", async (req, res) => {
